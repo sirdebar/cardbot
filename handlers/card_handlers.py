@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
 from storage.data_storage import storage
+import asyncio
 
 router = Router()
 
@@ -25,4 +26,9 @@ async def card_command(message: Message):
     if additional_info:
         response += f"\nДополнительная информация: {additional_info}"
     
-    await message.answer(response, parse_mode="Markdown")
+    # Отправляем сообщение и сохраняем его для последующего удаления
+    sent_message = await message.answer(response, parse_mode="Markdown")
+    
+    # Ждем 10 секунд и удаляем сообщение
+    await asyncio.sleep(10)
+    await sent_message.delete()
