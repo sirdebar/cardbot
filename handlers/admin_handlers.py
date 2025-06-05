@@ -17,8 +17,23 @@ async def start_command(message: Message, state: FSMContext):
         await message.answer("У вас нет прав доступа к этому боту.")
         return
     
-    await message.answer("Здравствуйте! Введите данные карты:")
-    await state.set_state(CardStates.waiting_for_card_data)
+    # Проверяем, есть ли уже активная карта
+    if storage.has_active_card():
+        card_info = storage.get_active_card()
+        card_data = card_info["card_data"]
+        additional_info = card_info.get("additional_info")
+        
+        # Формируем сообщение с текущей картой
+        response = f"Актуальная карта: `{card_data}`"
+        if additional_info:
+            response += f"\nДополнительная информация: {additional_info}"
+        response += "\n\nЖелаете добавить новую? (- если нет)"
+        
+        await message.answer(response, parse_mode="Markdown")
+        await state.set_state(CardStates.waiting_for_card_data)
+    else:
+        await message.answer("Здравствуйте! Введите данные карты:")
+        await state.set_state(CardStates.waiting_for_card_data)
 
 @router.message(CardStates.waiting_for_card_data, F.chat.type == "private")
 async def process_card_data(message: Message, state: FSMContext):
@@ -30,7 +45,14 @@ async def process_card_data(message: Message, state: FSMContext):
         await state.clear()
         return
     
-    card_data = message.text.strip()
+    card_data = message.text.strip() if message.text else ""
+    
+    # Если пользователь ввел "-", отменяем добавление новой карты
+    if card_data == "-":
+        await message.answer("Добавление новой карты отменено.")
+        await state.clear()
+        return
+    
     await state.update_data(card_data=card_data)
     
     await message.answer("Желаете добавить дополнительную информацию? (Если нет введите -)")
@@ -46,12 +68,12 @@ async def process_additional_info(message: Message, state: FSMContext):
         await state.clear()
         return
     
-    additional_info = message.text.strip()
+    additional_info = message.text.strip() if message.text else ""
     data = await state.get_data()
     card_data = data.get("card_data")
     
-    # Если пользователь ввел "-", дополнительную информацию не сохраняем
-    if additional_info == "-":
+    # Если пользователь ввел "-" или пустую строку, дополнительную информацию не сохраняем
+    if additional_info == "-" or not additional_info:
         additional_info = None
     
     # Сохраняем карту как активную
