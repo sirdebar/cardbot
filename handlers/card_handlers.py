@@ -24,7 +24,7 @@ async def card_command(message: Message):
     
     # Добавляем дополнительную информацию, если она есть
     if additional_info:
-        response += f"\nДополнительная информация: {additional_info}"
+        response += f"\n\nДополнительная информация: {additional_info}"
     
     # Отправляем сообщение и сохраняем его для последующего удаления
     sent_message = await message.answer(response, parse_mode="Markdown")
